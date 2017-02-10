@@ -18,14 +18,14 @@ import numpy as np
 
 
 # Transfer data type object to categorical
-def transfer_dtype(variable, type):
-    df[variable]= df[variable].astype(type)
+def transfer_dtype(variable):
+    df[variable]= df[variable].astype('category')
     print(df[variable].dtypes)
 
 
-# transfer_dtype('Product_Info_1', 'category')
+# transfer_dtype('Product_Info_1')
 # transfer_dtype('Employment_Info_1',float) # not working for string
-# transfer_dtype('Medical_History_1', int)
+# transfer_dtype('Medical_History_1', int) # not working for int
 
 
 # Transfer data type to continuous
