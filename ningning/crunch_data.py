@@ -82,8 +82,6 @@ class MissingMethod:
 
 
 
-
-
 preprocess = MissingMethod(data).fill_mode()
 preprocess = MissingMethod(data).fill_avg()
 check_missing(preprocess)
