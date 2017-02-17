@@ -1,6 +1,8 @@
 from load_data import data
 import pandas as pd
-# import numpy as np
+import numpy as np
+from scipy.sparse.linalg import svds
+from functools import partial
 
 
 def check_missing(df):
@@ -21,7 +23,7 @@ def check_missing(df):
     # print(data.dtypes)
     return df_missing_data
 
-check_missing(data)
+# check_missing(data)
 
 
 """
@@ -42,6 +44,7 @@ cont_variable_list = ['Product_Info_4', 'Ins_Age','Ht','Wt','BMI','Employment_In
 
 dis_variable_list = ['Medical_History_1', 'Medical_History_10', 'Medical_History_15', 'Medical_History_24',
                      'Medical_History_32']
+
 for i in range (48):
     i += 1
     dis_variable_list.append('Medical_Keyword_'+'i')
@@ -65,7 +68,9 @@ class MissingMethod:
     """
 
     def __init__(self, df):
-        self.df = df
+        self.df= df
+        # self.df = df.drop('Response',axis =1, inplace = True)
+        # print(df.shape)
 
     def fill_mode(self):
         for var in missing_list:
@@ -82,9 +87,62 @@ class MissingMethod:
 
 
 
-preprocess = MissingMethod(data).fill_mode()
-preprocess = MissingMethod(data).fill_avg()
-check_missing(preprocess)
+# preprocess = MissingMethod(data).fill_mode()
+# preprocess = MissingMethod(data).fill_avg()
+# check_missing(preprocess)
+# preprocess = MissingMethod(data)
+
+
+
+def emsvd(df,k = None, tol = 1E-3, maxiter = None):
+    if k is None:
+        svdmethod = partial(np.linalg.svd, full_matrices = False)
+    else:
+        svdmethod = partial(svds, k =k)
+    if maxiter is None:
+        maxiter = np.inf
+
+    col_avg = np.nanmean(df, axis=0, keepdims =1)
+    valid = np.isfinite(df)
+    y = np.where(valid, df, col_avg)
+
+    halt = False
+    ii =1
+    v_prev =0.01
+
+    while not halt:
+        U, s, Vt = svdmethod(y - col_avg)
+        y[~valid] =(U.dot(np.diag(s)).dot(Vt) + col_avg)[~valid]
+        col_avg = y.mean(axis = 0, keepdims = 1)
+        v = s.sum()
+        if ii >= maxiter or ((v-v_prev)/v_prev) < tol:
+            halt = True
+        ii +=1
+        v_prev = v
+
+    return y
+
+
+
+# print(type(data))
+
+# data = data.drop('Response',axis =1, inplace = True)
+data.drop('Response',axis =1, inplace =True)
+# print(data.shape)
+# print(type(data))
+df = data.values
+df_svd = emsvd(df)
+# print(df_svd)
+y = pd.DataFrame(df_svd)
+# print(y.head)
+check_missing(y)
+
+
+
+
+
+
+
 
 
 

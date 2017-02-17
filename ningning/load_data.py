@@ -19,7 +19,17 @@ train_data= train.loader()
 test = DataLoader(path='test.csv')
 test_data = test.loader()
 data = train_data.append(test_data)
-# print(data.shape)
+
+# data['Product_Info_2_char'] = data.Product_Info_2.str[0]
+# data['Product_Info_2_num'] = data.Product_Info_2.str[1]
+
+# factorize categorical variables
+data['Product_Info_2'] = pd.factorize(data['Product_Info_2'])[0]
+# print(data['Product_Info_2'].unique())
+
+
+
+
 
 
 
