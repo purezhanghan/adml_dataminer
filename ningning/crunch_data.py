@@ -1,9 +1,6 @@
 from load_data import data
 import pandas as pd
 import numpy as np
-from scipy.sparse.linalg import svds
-from functools import partial
-
 
 def check_missing(df):
     # Explore missing data
@@ -91,111 +88,6 @@ class MissingMethod:
 # preprocess = MissingMethod(data).fill_avg()
 # check_missing(preprocess)
 # preprocess = MissingMethod(data)
-
-
-# use SVD to fill missing values
-def emsvd(df,k = None, tol = 1E-3, maxiter = None):
-    if k is None:
-        svdmethod = partial(np.linalg.svd, full_matrices = False)
-    else:
-        svdmethod = partial(svds, k =k)
-    if maxiter is None:
-        maxiter = np.inf
-
-    col_avg = np.nanmean(df, axis=0, keepdims =1)
-    valid = np.isfinite(df)
-    y = np.where(valid, df, col_avg)
-
-    halt = False
-    ii =1
-    v_prev =0.001
-
-    while not halt:
-        U, s, Vt = svdmethod(y - col_avg)
-        y[~valid] =(U.dot(np.diag(s)).dot(Vt) + col_avg)[~valid]
-        col_avg = y.mean(axis = 0, keepdims = 1)
-        v = s.sum()
-        if ii >= maxiter or ((v-v_prev)/v_prev) < tol:
-            halt = True
-        ii +=1
-        v_prev = v
-
-    return y
-
-def fill_accuracy(initial, filled):
-    diff = initial.sub(filled, axis =0)
-    print(diff.head)
-    # check_missing(diff)
-
-
-
-
-data.drop('Response',axis =1, inplace =True)
-# print(data.shape)
-# print(data.index)
-# print(type(data))
-df = data.values
-# print(df.shape)
-# df_svd = emsvd(df)
-# print(df_svd.shape)
-# y = pd.DataFrame(df_svd, columns = data.columns)
-# print(y.shape)
-
-# y.to_csv('output.csv', sep =',')
-
-# print(y.index)
-# fill_accuracy(data,y)
-# diff = data.subtract(y)
-
-# print(diff.shape)
-
-# diff = np.square(df-df_svd)
-# print(diff)
-# print(diff.shape)
-# s = np.nansum(diff)
-# np.set_printoptions(precision=1000)
-# print(np.array(s))
-# diff = pd.DataFrame(diff, columns = data.columns)
-# diff.to_csv('diff.csv',sep = ',')
-
-
-def matrix_factorization(R, P, Q, K, steps=5000, alpha=0.0002, beta=0.02):
-    Q = Q.T
-    for step in range(steps):
-        for i in range(len(R)):
-            for j in range(len(R[i])):
-                if R[i][j] > 0:
-                    eij = R[i][j] - np.dot(P[i,:],Q[:,j])
-                    for k in range(K):
-                        P[i][k] = P[i][k] + alpha * (2 * eij * Q[k][j] - beta * P[i][k])
-                        Q[k][j] = Q[k][j] + alpha * (2 * eij * P[i][k] - beta * Q[k][j])
-        eR = np.dot(P,Q)
-        e = 0
-        for i in range(len(R)):
-            for j in range(len(R[i])):
-                if R[i][j] > 0:
-                    e = e + pow(R[i][j] - np.dot(P[i,:],Q[:,j]), 2)
-                    for k in range(K):
-                        e = e + (beta/2) * ( pow(P[i][k],2) + pow(Q[k][j],2) )
-        if e < 0.001:
-            break
-    return P, Q.T
-
-R = df
-N = len(R)
-M = len(R[0])
-K =2
-
-P  = np.random.rand(N,K)
-Q = np.random.rand(M,K)
-nP, nQ = matrix_factorization(R, P, Q, K)
-nR = np.dot(nP, nQ.T)
-
-# print(nR)
-
-
-
-
 
 
 
