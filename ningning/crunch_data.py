@@ -191,7 +191,7 @@ Q = np.random.rand(M,K)
 nP, nQ = matrix_factorization(R, P, Q, K)
 nR = np.dot(nP, nQ.T)
 
-print(nR)
+# print(nR)
 
 
 
