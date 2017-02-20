@@ -29,6 +29,7 @@ data = train_data.append(test_data)
 data['Product_Info_2'] = pd.factorize(data['Product_Info_2'])[0]
 # print(data['Product_Info_2'].unique())
 
+data = data.drop('Id',axis =1)
 
 
 
