@@ -1,4 +1,3 @@
-from load_data import data
 import pandas as pd
 
 # Load data file #
