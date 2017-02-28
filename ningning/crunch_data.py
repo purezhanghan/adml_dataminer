@@ -107,8 +107,7 @@ class MissingMethod:
 
     def fill_avg(self):
         for var in missing_list:
-            if var in cont_variable_list:
-                self.df[var] = self.df[var].fillna(self.df[var].mean())
+            self.df[var] = self.df[var].fillna(self.df[var].mean())
         return self.df
     
     def drop_col(self):
