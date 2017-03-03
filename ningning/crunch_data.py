@@ -122,7 +122,33 @@ class MissingMethod:
 # check_missing(preprocess)
 # preprocess = MissingMethod(data)
 
-
+# use SVD to fill missing data
+# pls normalise the data before using this function 
+# 1. if filling missing data, pls drop response
+# 2. if use it to predict response, pls keep response
+def fill_svd (df):
+    col_mean = np.nanmean(df, axis=0, keepdims=1)
+    valid = np.isfinite(df)
+    df0 = np.where(valid, df, col_mean)
+    halt = True
+    maxiter =1000
+    ii = 1
+    normlist = []
+    while halt == True:
+        U, s, V = np.linalg.svd(df0, full_matrices = False)
+        s1 = [(i*0 if i <= 30 else i ) for i in s]
+        df1 = U.dot(np.diag(s1).dot(V))
+        df2= np.where(~valid, df1, df0)
+        norm = np.linalg.norm(df2 - df1)
+        normlist.append(norm)
+#        print(norm)
+        df0=df2
+        if norm < 0.00001 or ii >= maxiter:
+            halt = False
+            error = np.nansum((df1-df)**2)
+        ii += 1
+        print(ii)
+    return df2, normlist, error
 
 
 
