@@ -22,7 +22,6 @@ train_data= train.loader()
 test = DataLoader(path='test.csv')
 test_data = test.loader()
 data = train_data.append(test_data)
-
 # Preprocess data #
 
 # factorize categorical variables
@@ -36,7 +35,6 @@ def feature_scale(df):
     scale_df = (df - df.mean())/df.std(ddof =1)
     return scale_df
 
-data = feature_scale(data)
 
 #  dealing missing value
 
