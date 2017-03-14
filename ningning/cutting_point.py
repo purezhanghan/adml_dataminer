@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 model = LinearRegression()
 model.fit(X, Y)
-pred = model.predict(X)
+pred = model.predict(data)
 
 from sklearn.linear_model import LogisticRegression
 pred = pd.DataFrame(pred)
@@ -27,6 +27,35 @@ y_target = pd.DataFrame(Y.values).astype(int)
 classifier = LogisticRegression ()
 classifier.fit(pred, y_target)
 prediction_result = classifier.predict(pred)
+
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_target, prediction_result)
+
+from sklearn.neighbors import KNeighborsClassifier
+classifier_K = KNeighborsClassifier(n_neighbors =5 ,metric='minkowski',p=2 )
+classifier_K.fit(pred,y_target)
+prediction_result = classifier_K.predict(pred)
+cm = confusion_matrix(y_target, prediction_result)
+
+from sklearn.svm import SVC
+classifier_svm = SVC(kernel='linear', random_state=0)
+classifier_svm.fit(pred,y_target)
+prediction_result = classifier_svm.predict(pred)
+
+from sklearn.naive_bayes import GaussianNB
+classifier_bs = GaussianNB()
+classifier_bs.fit(pred,y_target)
+prediction_result = classifier_bs.predict(pred)
+
+from sklearn.ensemble import RandomForestClassifier
+classifier_rf = RandomForestClassifier(n_estimators= 10, criterion='entropy',random_state=0)
+classifier_rf.fit(pred,y_target)
+prediction_result = classifier_rf.predict(pred)
+
+
+
+
+
 
 #pred = model.predict(X_test)
 #pred = np.clip(pred, 1,8)
