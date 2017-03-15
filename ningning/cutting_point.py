@@ -4,13 +4,13 @@ from sklearn.preprocessing import LabelEncoder
 from copy import deepcopy
 from sklearn.model_selection import train_test_split
 df = pd.read_csv('cleaned_data1.csv',sep=',')
-target = df['Response']
+
 
 feature_col = df.columns[:-1]
 X = df[feature_col]
 Y = df['Response']
 
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=1)
+#X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=1)
 
 # model
 from sklearn.linear_model import LinearRegression
@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 model = LinearRegression()
 model.fit(X, Y)
 pred = model.predict(data)
+
+# cutting point model
 
 from sklearn.linear_model import LogisticRegression
 pred = pd.DataFrame(pred)
@@ -53,15 +55,7 @@ classifier_rf.fit(pred,y_target)
 prediction_result = classifier_rf.predict(pred)
 
 
-
-
-
-
-#pred = model.predict(X_test)
-#pred = np.clip(pred, 1,8)
-#prediction_result = np.round(pred)
-
-
+# compare data with original distribution of response categories
 
 plt.style.use('ggplot')
 
