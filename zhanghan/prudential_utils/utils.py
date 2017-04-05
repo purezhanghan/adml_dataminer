@@ -1,21 +1,14 @@
 import pandas as pd
 from copy import deepcopy
 import numpy as np
-from prudential_utils import paths
+from local import paths
 from sklearn import preprocessing
-import scipy.stats as stats
-from scipy.stats import norm
-
-import matplotlib.pyplot as plt
-from collections import Counter
 from sklearn.preprocessing import PolynomialFeatures
-import xgboost as xgb
 import operator
-from ml_metrics import quadratic_weighted_kappa
-from sklearn import metrics
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics.scorer import make_scorer
+import random
 
+
+random.seed(26)
 print('Load the data using pandas')
 
 path_train = paths.TRAIN_PATH
@@ -142,172 +135,21 @@ def data_normalization(train, test):
     return train_processed_linear, test_processed_linear
 
 
-def eval_wrapper(yhat, y):
-    y = np.array(y)
-    y = y.astype(int)
-    yhat = np.array(yhat)
-    yhat = np.clip(np.round(yhat), np.min(y), np.max(y)).astype(int)
-    return quadratic_weighted_kappa(yhat, y)
-
-
-def eval_wrapper_xgb(preds, data):
-    target = data.get_label()
-    preds = np.array(preds)
-    preds = np.clip(np.round(preds), np.min(target), np.max(target)).astype(int)
-    return quadratic_weighted_kappa(preds, target)
-
-def modelfit_xgb(alg, dtrain, predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50, metric='rmse', obt='reg:linear'):
-    target = "Response"
-    if useTrainCV:
-        xgb_param = alg.get_xgb_params()
-        xgb_param['objective'] = obt
-        if xgb_param['objective'] == 'multi:softmax':
-            xgb_param['num_class'] = 8
-            metric = 'merror'
-            xgtrain = xgb.DMatrix(dtrain[predictors].values, label=(dtrain[target]-1).values)
-        xgtrain = xgb.DMatrix(dtrain[predictors].values, label=dtrain[target].values)
-        cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
-                          metrics=metric, early_stopping_rounds=early_stopping_rounds, verbose_eval=3)
-        alg.set_params(n_estimators=cvresult.shape[0])
-
-    # cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=xgb1.get_params()['n_estimators'], nfold=5,
-    #                   metrics='rmse', early_stopping_rounds=50, verbose_eval=3,
-    #                   feval=eval_wrapper_xgb)
-
-    # Fit the algorithm on the data
-    alg.fit(dtrain[predictors], dtrain[target], eval_metric=metric)
-
-    # Predict training set:
-    dtrain_predictions = alg.predict(dtrain[predictors])
-
-    if alg._estimator_type == 'regressor':
-        dtrain_prediction = np.clip(dtrain_predictions,1,8)
-        dtrain_predictions = np.round(dtrain_prediction).astype(int)
-    # dtrain_predprob = alg.predict_proba(dtrain[predictors])[:,1]
-
-    # print model report:
-    print("\nModel Report")
-    print("Accuracy : %.4g" % metrics.accuracy_score(dtrain[target].values,
-                                                     dtrain_predictions))
-    # print("AUC Score (Train): %f" % metrics.accuracy_score(dtrain['Disbursed'],
-    #                                                dtrain_predprob))
-
-    feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
-    # top 50 most important features
-    feat_imp[:50].plot(kind="bar", title='Feature Importances')
-    plt.ylabel('Feature Importance Score')
-    # return model which has optimal n_estimators for a specific learning_rate
-    return alg
 
 
 
-train_tree, test_tree = load_data_tree()
+if __name__ =='__main__':
+    train_tree, test_tree = load_data_tree()
 
-predictors = [x for x in train_tree.columns if x not in ["Id", "Response"]]
+    train_tree.to_csv('data/train_tree.csv', index=False)
+    test_tree.to_csv('data/test_tree.csv', index=False)
 
-
-#### xgb1: classifier, xgb2: regressor
-
-xgb1 = xgb.XGBClassifier(
-    learning_rate = 0.1,
-    n_estimators=1000,
-    max_depth=7,
-    min_child_weight=1,
-    gamma=0,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    objective='multi:softmax',
-    nthread=4,
-    scale_pos_weight=1,
-    seed=27,
-
-)
-
-xgb2 = xgb.XGBRegressor(
-    learning_rate = 0.1,
-    n_estimators =1000,
-    max_depth=7,
-    min_child_weight=1,
-    gamma=0,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    objective='reg:linear',
-    nthread=4,
-    scale_pos_weight=1,
-)
-
-
-model = modelfit_xgb(xgb1, train_tree, predictors)
-my_scorer = make_scorer(quadratic_weighted_kappa, greater_is_better=True)
-
-
-# tune max_depth and min_child_weight
-
-param_test1 = {
-    "max_depth":range(3,10,2),
-    "min_child_weight":range(1,6,2)
-}
-
-params_test2 ={
-    "max_depth":[4,5,6],
-    "min_child_weight":[4,5,6]
-}
-
-# tune gamma
-params_test3 = {
-    "gamma" :[i/10.0 for i in range(0,5)]
-}
-
-
-# tune subsample and colsample_bytree
-params_test4 = {
-    'subsample' : [i/10.0 for i in range(6,10)],
-    'colsample_bytree' : [i/10.0 for i in range(6,10)]
-}
-
-params_test5 = {
-    'subsample' : [i/100.0 for i in range(75, 90, 5)],
-    'colsample_bytree': [i/100.0 for i in range(75,90,5)]
-}
-
-# tune regularization parameters
-params_test6 = {
-    'reg_alpha':[1e-5, 1e-2, 0.1, 1, 100]
-}
-
-params_test7 = {
-    'reg_alpha':[0, 0.001, 0.005, 0.01, 0.05]
-}
-
-# tunning for learning_rate
-xgb_for_learning_rate = deepcopy(model).set_params(n_estimators=5000, learning_rate=0.01)
+    train_regress, test_regress = data_normalization(train_tree, test_tree)
+    train_regress.to_csv('data/train_regress.csv', index=False)
+    test_regress.to_csv('data/test_regress.csv', index=False)
 
 
 
-def stage_one_grid_search_xgb(model, data, predictors, param_test):
-
-    # if step == 2:
-    #     param_test = param_test1
-    #     print('\n grid search for max_depth in range[3, 10, 2] and min_child_weight in range[1, 6, 2]')
-    # else:
-    #     param_test = params_test2
-    #     print('\n grid search for max_depth in [4,5,6] and min_child_weight in [4,5,6]')
-
-    target = 'Response'
-    # params = model.get_xgb_params()
-
-    gsearch1  = GridSearchCV(estimator = model, param_grid = param_test,
-                             scoring=my_scorer,  iid=False, cv=5,
-                             verbose=3
-    )
-
-    gsearch1.fit(data[predictors], data[target])
-    gsearch1.grid_scores_
-    gsearch1.best_params_
-    gsearch1.best_score_
-    model.set_params(gsearch1.best_params_)
-
-    return model
 
 
 
