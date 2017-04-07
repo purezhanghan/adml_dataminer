@@ -51,7 +51,7 @@ def eval_wrapper(yhat, y):
 
 
 def score_offset(data, bin_offset, sv, scorer=eval_wrapper):
-    data[1, data[0].astype(int)==sv] = data[0, data[0].astype(int)==sv] + bin_offset
+    data[1, data[0].astype(int)==sv] = data[0, data[0].astype(int) == sv] + bin_offset
     score = scorer(data[1], data[2])
     return score
 
@@ -86,14 +86,14 @@ class modelOffset():
         offset_preds = np.vstack((train_preds, train_preds, y_train))
         offset_preds = apply_offset(offset_preds, offsets)
 
-        opt_order = [6, 4, 3, 5]
+        opt_order = list(range(8))
         for j in opt_order:
             train_offset = lambda x: -score_offset(offset_preds, x, j) * 100
             offsets[j] = fmin_powell(train_offset, offsets[j], disp=True)
 
         test_offset = np.vstack((test_preds, test_preds))
         test_offset = apply_offset(test_offset, offsets)
-        final_test_preds = np.round(np.clip(test_offset[1], -0.99, 8.99)).astype(int)
+        final_test_preds = np.round(np.clip(test_offset[1], 1, 8)).astype(int)
 
         return final_test_preds
 
@@ -127,4 +127,55 @@ svm_preds_lists = svm_offset.offsetResult()
 
 xgb_offset = modelOffset(xgb_model, train_tree[predictors], train_tree['Response'], shuffle=False, random_seed=29)
 xgb_preds_lists = xgb_offset.offsetResult()
+
+
+# version 1
+# voting ensemble
+
+from sklearn.ensemble import VotingClassifier
+from sklearn.model_selection import train_test_split
+eclf = VotingClassifier(estimators=[('linear',linear_model), ('rf', rf_model), ('svm', svm_model), ('xgb', xgb_model)])
+
+train_regress_feature, val_regress_feature, train_regress_target, val_regress_target = train_test_split(train_regress[predictors], train_regress['Response'], test_size=0.2, random_state=26)
+train_tree_feature, val_tree_feature, train_tree_target, val_tree_target = train_test_split(train_tree[predictors], train_tree['Response'], test_size=0.2, random_state=26)
+
+
+linear_model = linear_model.fit(train_regress_feature, train_regress_target)
+rf_model = rf_model.fit(train_tree_feature, train_tree_target)
+svm_model = svm_model.fit(train_regress_feature, train_regress_target)
+xgb_model = xgb_model.fit(train_tree_feature, train_tree_target)
+
+eclf.fit(train_regress_feature, train_regress_target)
+
+e_preds = eclf.predict(val_tree_feature)
+e_score = quadratic_weighted_kappa(e_preds, val_regress_target)
+
+
+
+# version 2 to do ...
+# second layer model
+
+# weighted average
+# stacking
+# blending
+#
+from sklearn.linear_model import LogisticRegression
+
+logis = LogisticRegression()
+data_dict = {'linear': linear_preds_lists, 'rf': rf_preds_lists, 'svm': svm_preds_lists, 'xgb':xgb_preds_lists}
+ensemble_df = pd.DataFrame(data=data_dict, columns=['linear', 'rf', 'svm', 'xgb'])
+logis.fit(data_dict['linear', 'rf', 'svm', 'xgb'], train_regress['Response'])
+
+linear_test_preds = linear_offset.one_fold_train(train_regress[predictors], train_regress['Response'], test_regress[predictors])
+rf_test_preds = rf_offset.one_fold_train(train_tree[predictors], train_tree['Response'], test_regress[predictors])
+svm_test_preds = svm_offset.one_fold_train(train_regress[predictors], train_regress['Response'], test_regress[predictors])
+xgb_test_preds = xgb_offset.one_fold_train(train_tree[predictors], train_tree['Response'], test_tree[predictors])
+
+test_dict = {'linear': linear_test_preds, 'rf': rf_test_preds, 'svm': svm_test_preds, 'xgb': xgb_test_preds}
+test_df = pd.DataFrame(data=test_dict, columns=['linear', 'rf', 'svm', 'xgb'])
+
+
+logis_preds = logis.predict(test_df)
+logis_preds.to_csv('ensemble_res.csv', index=test_regress.index)
+
 
