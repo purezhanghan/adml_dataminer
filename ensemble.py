@@ -1,12 +1,18 @@
 import numpy as np
 from copy import deepcopy
 import pandas as pd
+from sklearn.externals import joblib
 
 
 
-def proba_ensemble(rf_class_model, xgb_class_model, svm_class_model, regress_class_model, parsed_train, parsed_train_normal, parsed_test, parsed_test_normal):
+def proba_ensemble(parsed_train, parsed_train_normal, parsed_test, parsed_test_normal , type='class'):
 	predictors = [col for col in parsed_train.columns.values if col not in ['Response', 'Id']]
 	
+	rf_class_model = joblib.load('models_class/rf_class.pkl')
+	xgb_class_model = joblib.load('models_class/xgb_class.pkl')
+	svm_class_model = joblib.load('models_class/svm_class.pkl')
+	regress_class_model = joblib.load('models_class/regress_class.pkl')
+
 	rf_class_model.fit(parsed_train[predictors], parsed_train['Response'])
 	rf_class_model_train_preds_proba = rf_class_model.predict_proba(parsed_train[predictors])
 	rf_class_model_test_preds_proba = rf_class_model.predict_proba(parsed_test[predictors])
@@ -39,9 +45,16 @@ def proba_ensemble(rf_class_model, xgb_class_model, svm_class_model, regress_cla
 	class_proba_sum_up_test_df = pd.DataFrame(data=class_proba_sum_up_test, index=ensemble_class_parsed_test.index, columns=proba_columns)
 	ensemble_class_parsed_test = pd.concat([parsed_test, class_proba_sum_up_test_df], axis=1)
 
-	new_predictors_class = [col for col in ensemble_class_parsed_train.columns.values if col not in ['Response','Id']]
-	xgb_class_model.fit(ensemble_class_parsed_train[new_predictors_class], ensemble_class_parsed_train['Response'])
-	ensemble_re_train_preds = xgb_class_model.predict(ensemble_class_parsed_test[new_predictors_class])
-	ensemble_class_re_train_preds_round = np.clip(ensemble_re_train_preds.round(), 1, 8)
+	if type == 'class':
+		xgb_class_model = joblib.load('models_class/xgb_class.pkl')
+		new_predictors_class = [col for col in ensemble_class_parsed_train.columns.values if col not in ['Response','Id']]
+		xgb_class_model.fit(ensemble_class_parsed_train[new_predictors_class], ensemble_class_parsed_train['Response'])
+		ensemble_re_train_preds = xgb_class_model.predict(ensemble_class_parsed_test[new_predictors_class])
+		ensemble_re_train_preds = np.clip(ensemble_re_train_preds.round(), 1, 8)
+	elif type == 'regress':
+		xgb_regress_model = joblib.load('models_regress/xgb.pkl')
+		new_predictors_class = [col for col in ensemble_class_parsed_train.columns.values if col not in ['Response','Id']]
+		xgb_regress_model.fit(ensemble_class_parsed_train[new_predictors_class], ensemble_class_parsed_train['Response'])
+		ensemble_re_train_preds = xgb_regress_model.predict(ensemble_class_parsed_test[new_predictors_class])
 
-	return ensemble_class_re_train_preds_round
+	return ensemble_re_train_preds

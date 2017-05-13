@@ -1,10 +1,10 @@
 import pandas as pd
 from copy import deepcopy
 import numpy as np
-from local import paths
 from sklearn import preprocessing
 import operator
 import random
+import path
 from sklearn.feature_selection import SelectFromModel
 
 from sklearn.preprocessing import Imputer
@@ -13,8 +13,8 @@ from sklearn.svm import LinearSVC
 
 random.seed(26)
 print('Load the data')
-path_train = paths.TRAIN_PATH
-path_test = paths.TEST_PATH
+path_train = path.TRAIN_PATH
+path_test = path.TEST_PATH
 
 
 def fill_svd(df):
@@ -50,7 +50,7 @@ def loadParseData(imputing='mean'):
     all_data['Response'].fillna(-1, inplace=True)
     all_data_replicate = deepcopy(all_data)
     all_data.drop(['Response'], axis=1, inplace=True)
-
+    print('\n')
     print('Normal feature engineering\n \
     	1. NaN values count up \n \
     	2. BMI age interaction \n \
@@ -143,8 +143,8 @@ def normalization(train, test):
 	all_data_no_response[cols_normalized] = scalar.fit_transform(all_data_no_response[cols_normalized])
 	all_data_no_response['Response'] = all_data['Response'].astype(int)
 
-	train_normalized = all_data_no_response[all_data_no_response['Response'] < 0 ].copy()
-	test_normalized = all_data_no_response[all_data_no_response['Response'] > 0].copy()
+	train_normalized = all_data_no_response[all_data_no_response['Response'] > 0 ].copy()
+	test_normalized = all_data_no_response[all_data_no_response['Response'] < 0].copy()
 	test_normalized = test_normalized.drop('Response', axis=1)
 
 	return train_normalized, test_normalized
@@ -173,7 +173,7 @@ def et_selection(df, alternatives=True, default_import=0.9):
 	        	extra_feature = weights_cum.index[i:]
 	        	extra_feature_list = extra_feature.tolist()
 	        	print(extra_feature_list)
-	        return extra_feature_list
+	        	return extra_feature_list
     # alternative 2: feature select method with SelectFromModel
     # with threshold 0.005
 	selected_model = SelectFromModel(extra_model, prefit=True, threshold=0.005)
@@ -184,9 +184,9 @@ def et_selection(df, alternatives=True, default_import=0.9):
 
 def svc_selection(df, p='l1'):
 	if len(df) > 60000:
-		return('wrong data frame input, specify the training section')
-	if max(df['Product_Info_3']) > 1:
-		return('wrong data frame input, specify the normalized data')
+		raise ValueError('wrong data frame input, specify the training section')
+	if max(df['Product_Info_3']) > 2:
+		raise ValueError('wrong data frame input, specify the normalized data')
 
 	predictors = [col for col in df.columns.values if col not in ['Response', 'Id']]
 	if p == 'l1':
@@ -202,5 +202,5 @@ def svc_selection(df, p='l1'):
 		l2_feature_list = np.asarray(predictors)[model_l2.get_support().tolist()]
 		return l2_feature_list
 	else:
-		return('Not a valid penalty term, please specify l1 or l2')
+		raise ValueError('Not a valid penalty term, please specify l1 or l2')
 

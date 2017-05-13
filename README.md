@@ -1,13 +1,19 @@
 # adml_dataminer
 adml_dataminer
 
-## 可能用到的工具
+## Dependencies
 ### python
-- pandas (data processing)
-- matplotlib.pyplot (plotting)
-- numpy (array, matrix)
-- scipy (scientific calculation)
-- scikit-learn(machine learning techs)
+- numpy==1.12.1
+- ml_metrics==0.1.4
+- pandas==0.19.2
+- scipy==0.19.0
+- matplotlib==2.0.0
+- local==0.0.0
+- scikit_learn==0.18.1
+- statsmodels==0.8.0
+- xgboost==0.6
+
+## example can be viewed [example]()
 
 ### 分享
 - 任何想法分享到google drive中
@@ -19,3 +25,4 @@ ensemble predicting result from different base model(svm, linear, rf, xgb)
 Assigning different weights for base model predicting results, the second layer model is created
 to link first layer results and original target.(robost/stronger)
  
+
