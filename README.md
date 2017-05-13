@@ -13,16 +13,13 @@ adml_dataminer
 - statsmodels==0.8.0
 - xgboost==0.6
 
-## example can be viewed [example]()
+<br>### example can be viewed [example.ipynb](https://github.com/Entheos1994/adml_dataminer/blob/master/example.ipynb)
 
-### 分享
+<br>### summary report can be view [paper](https://github.com/Entheos1994/adml_dataminer/blob/master/project_final.pdf)
+
+<br>### 分享
 - 任何想法分享到google drive中
 - https://drive.google.com/drive/folders/0B8zqrhAmm5-1VGpSWkN6VW9lc00
-### Ensemble 
-1.sklearn.ensemble.VotingClassifier
-ensemble predicting result from different base model(svm, linear, rf, xgb)
-2.stacking 
-Assigning different weights for base model predicting results, the second layer model is created
-to link first layer results and original target.(robost/stronger)
+
  
 
